@@ -3,7 +3,7 @@
 module Main (
     main
 ) where
-
+import Text.Printf (printf)
 import Control.Monad (unless)
 import Data.List (stripPrefix)
 import System.Exit (exitFailure)
@@ -40,25 +40,30 @@ mapi2 :: (Int -> Int -> a -> b) -> [[a]] -> [[b]]
 mapi2 f = mapi (\ i -> mapi (\j -> f i j)) 
       
 
-changeState :: (CellInfo, (Int, Int))  -> State -> State
-changeState (ci, (x, y)) (State st) = 
-  let helper xc yc item = ci in
-  State (st // [(x, (st ! x) // [ ( y,helper x y ci) ]) ] )
+changeState :: (Int, (Int, Int))  -> State -> State
+changeState (playerNum, (x, y)) (State st) = 
+  let helper xc yc item = PlayerKlop playerNum in
+  State (st // [(x, (st ! x) // [ ( y,helper x y (st ! x ! y)) ]) ] )
   
-
-gameLoop playerNum st =
+-- gameLoop playerNumber movesCount curField
+--
+--gameLoop :: Int -> Int -> State -> _
+gameLoop playerNum movesN st =
   do    
-    putStrLn (show st)        
+    putStrLn (show st)
+    printf "Hi, Player %d! You can put %d klops now\n" (playerNum :: Int) (movesN :: Int)
     cmd <- getLine    
     let s2i = \x -> read x :: Int
-    let z = map ((\x -> (PlayerKlop playerNum, (s2i $ x!!0, s2i $  x!!1)) ) . (take 2) . (split ",")) (words cmd) 
+    let z = map ((\x -> (playerNum, (s2i $ x!!0, s2i $  x!!1)) ) . (take 2) . (split ",")) (words cmd) 
     applyMove st z
     where
-      applyMove st z | length z /= 2 = 
+      applyMove st z | length z > movesN = 
         do
-          putStrLn ("You should write 2 cells in the line")
-          gameLoop playerNum st
-      applyMove st z = gameLoop (mod (playerNum + 1) 2) (foldl (\st x -> changeState x st) st z)
+          printf "You should write not more %d cells in the line" (movesN :: Int)
+          gameLoop playerNum 2 st
+      applyMove st z | length z == movesN = 
+        gameLoop (mod (playerNum + 1) 2) 5 (foldl (\st x -> changeState x st) st z)
+      applyMove st z  = gameLoop playerNum (movesN - (length z)) (foldl (\st x -> changeState x st) st z)
 
 emptyField :: State
 emptyField = 
@@ -72,7 +77,7 @@ emptyField =
           
 exeMain = do
     putStrLn "Starting a game"
-    gameLoop 0 emptyField
+    gameLoop 0 5 emptyField
 
 main = exeMain
 

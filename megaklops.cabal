@@ -9,7 +9,7 @@ description:
 data-dir: ""
  
 executable megaklops
-    build-depends: QuickCheck -any, base -any, split -any, MissingH -any, vector -any
+    build-depends: QuickCheck -any, base -any, split -any, MissingH -any, vector -any, containers -any
     main-is: Main.hs
     buildable: True
     other-modules: Path
