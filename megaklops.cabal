@@ -9,15 +9,17 @@ description:
 data-dir: ""
  
 executable megaklops
-    build-depends: QuickCheck -any, base -any, split -any, MissingH -any
+    build-depends: QuickCheck -any, base -any, split -any, MissingH -any, vector -any
     main-is: Main.hs
     buildable: True
+    other-modules: Path
     hs-source-dirs: src
  
-test-suite test-megaklops
-    build-depends: QuickCheck -any, base -any
-    type: exitcode-stdio-1.0
-    main-is: Main.hs
-    buildable: True
-    cpp-options: -DMAIN_FUNCTION=testMain
-    hs-source-dirs: src
+--test-suite test-megaklops
+--    build-depends: QuickCheck -any, base -any
+--    type: exitcode-stdio-1.0
+--    main-is: Main.hs
+--    buildable: True
+--    cpp-options: -DMAIN_FUNCTION=testMain
+--    hs-source-dirs: src
+
