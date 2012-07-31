@@ -1,7 +1,8 @@
 module Path (check) where
 
-import Data.Vector hiding (concatMap, filter)
+import Data.Vector hiding (concatMap, filter, (++), length)
 import Data.Set as S hiding (filter)
+import Debug.Trace (trace)
 
 --fetch :: (Vector (Vector a)) -> (Int, Int) -> a
 --fetch arr (x,y) = arr ! x ! y
@@ -18,10 +19,13 @@ check init nei ok =
     startSet = Prelude.foldl (\acc x -> S.insert x acc) S.empty startNei
     startNei = nei init
     helper :: Set Point -> [Point] -> Bool
-    helper visited cells = 
+    helper _______ cells | length cells == 0 = False
+    helper visited cells =
       -- here all cells in 'cells' are evaluated
       let nextGen = filter (\x -> not (S.member x visited)) ( concatMap nei cells )
-          (newVisited,ans) = Prelude.foldl folder (visited,False) nextGen
+          (newVisited,ans) = 
+            trace ("visited count = " ++ (show $ S.size visited) ++ "\n") $ 
+            trace ("nextGen = " ++ (show nextGen) ++ "\n") $ Prelude.foldl folder (visited,False) nextGen
           folder :: (Set Point,Bool) -> Point -> (Set Point, Bool)
           folder (v,ans) _ | ans  = (v,ans)
           folder (v,___) e | ok e = (S.insert e v,True)
