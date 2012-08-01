@@ -79,8 +79,14 @@ evalMoves st playerN cells =
         Empty                       -> False
     helper (Right x) _ = Right x
     helper (Left (State st,n)) cell | (placableCell st cell) && (Path.check cell (nei' st) (goodCell st)) = 
-      Left (State $ updateField st cell (PlayerKlop playerN), n+1) 
+      Left (State $ updateField st cell (newCell st cell), n+1)
     helper (Left (_,n)) _ = Right ("cant put klop", n)
+    newCell st (x,y) =
+      case st ! x ! y of
+        Empty -> PlayerKlop playerN
+        PlayerFruit _ -> error "Impossible!"
+        PlayerKlop x | x /= playerN ->  PlayerFruit playerN
+        _ -> error "Impossible2!"
       
   
 -- gameLoop playerNumber movesCount curField
