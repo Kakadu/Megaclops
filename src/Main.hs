@@ -90,18 +90,15 @@ evalMoves st playerN cells =
     helper (Right x) _ = Right x
     helper (Left (State st counter,n)) cell | (placableCell st cell) && (Path.check cell (nei' st) (goodCell st)) = 
       Left (State (updateField st cell cellValue) 
-                  (if isKlop then 
-                       changeAt playerN ((counter !! playerN)+1) counter
-                   else
-                      counter)
+                  updatedCounter
            ,n+1)
-           where (cellValue, isKlop) = newCell st cell
+           where (cellValue, updatedCounter) = newCell st cell counter
     helper (Left (_,n)) _ = Right ("cant put klop", n)
-    newCell st (x,y) =
+    newCell st (x,y) counter =
       case st ! x ! y of
-        Empty -> (PlayerKlop playerN , True)
+        Empty -> (PlayerKlop playerN , changeAt playerN ((counter !! playerN)+1) counter)
         PlayerFruit _ -> error "Impossible!"
-        PlayerKlop x | x /= playerN ->  (PlayerFruit playerN, False)
+        PlayerKlop x | x /= playerN ->  (PlayerFruit playerN, changeAt x ((counter !! x)-1) counter)
         _ -> error "Impossible2!"
       
   
