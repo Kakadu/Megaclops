@@ -105,34 +105,48 @@ evalMoves st playerN cells =
 -- gameLoop playerNumber movesCount curField
 --
 --gameLoop :: Int -> Int -> State -> _
-gameLoop playerNum movesN st =
-  do    
-    putStrLn (show st)
-    printf "Hi, Player %d! You can put %d klops now\n" (playerNum :: Int) (movesN :: Int)
-    cmd <- getLine    
-    let s2i = \x -> read x :: Int
-    let z = map ((\x -> ( (s2i $ x!!0, s2i $  x!!1)) ) . (take 2) . (split ",")) (words cmd) 
-    case length z of
-      x | x > movesN -> 
-          do 
-            printf "You should not write more than %d cells in a line" (movesN :: Int)
-            gameLoop playerNum 2 st
-      x -> doApplyMoves z
-    where
-      doApplyMoves z =
-        case evalMoves st playerNum z of
-          Left (st,count) | count == movesN ->
-            do
-              putStrLn "All moves were applied\n"
-              gameLoop (mod (playerNum + 1) 2) 5 st
-          Left (st, count) | count < movesN ->
-            do 
-              printf "%d  moves were applied. %d left\n" (count :: Int) ((movesN - count) :: Int)
-              gameLoop playerNum (movesN-count) st
-          Right (msg,count) ->
-            do
-              printf "Error after successful applying of %d moves: %s\n" (count :: Int) (msg :: String)
-              gameLoop playerNum movesN st
+gameLoop playerNum movesN st@(State _ cntr) =
+  case Prelude.filter (\(item, num) -> item /= 0 ) $ zip cntr [0..] of
+    [(_, pNum)] ->
+      printf "Player %d won!!!\n" (pNum :: Int)
+    _ ->
+      if (cntr !! playerNum) == 0
+      then
+        do
+          printf "Player %d is out\n" (playerNum :: Int)
+          gameLoop (mod (playerNum + 1) 2) 5 st
+      else
+        do
+          putStrLn (show st)
+          printf "Hi, Player %d! You can put %d klops now\n" (playerNum :: Int) (movesN :: Int)
+          cmd <- getLine
+          case cmd of
+            "skip" -> gameLoop (mod (playerNum + 1) 2) 5 st
+            _ ->
+              do
+                let s2i = \x -> read x :: Int
+                let z = map ((\x -> ( (s2i $ x!!0, s2i $  x!!1)) ) . (take 2) . (split ",")) (words cmd) 
+                case length z of
+                  x | x > movesN -> 
+                    do 
+                      printf "You should not write more than %d cells in a line" (movesN :: Int)
+                      gameLoop playerNum 2 st
+                  x -> doApplyMoves z
+                    where
+                      doApplyMoves z =
+                        case evalMoves st playerNum z of
+                          Left (st,count) | count == movesN ->
+                            do
+                              putStrLn "All moves were applied\n"
+                              gameLoop (mod (playerNum + 1) 2) 5 st
+                          Left (st, count) | count < movesN ->
+                            do 
+                              printf "%d  moves were applied. %d left\n" (count :: Int) ((movesN - count) :: Int)
+                              gameLoop playerNum (movesN-count) st
+                          Right (msg,count) ->
+                            do
+                              printf "Error after successful applying of %d moves: %s\n" (count :: Int) (msg :: String)
+                              gameLoop playerNum movesN st
 
 emptyField :: State
 emptyField = 
