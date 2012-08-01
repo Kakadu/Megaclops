@@ -28,28 +28,38 @@ instance Show CellInfo where
       Empty -> "_"
       _ -> assert False "12439u12-u4=-123"
 
-data State = State (Vector (Vector CellInfo))
+data State = State (Vector (Vector CellInfo)) [Int]
 
 instance Show State where
-  show (State a) = concatMap (\x -> (f x) ++ "\n") (toList a)
+  show (State a b) = concatMap (\x -> (f x) ++ "\n") (toList a)
+                     ++ foldl (\buf (count, index) -> buf ++ "\nPlayer " ++ (show index) ++ ": " ++ (show count) ++ "klops") "" (zip b [0..])
     where f arr = concatMap show  (toList arr)
           
 mapi :: (Int -> a -> b) -> [a] -> [b]
 mapi f  = (map (\(i,x) -> f i x)) . (zip [0..])
 mapi2 :: (Int -> Int -> a -> b) -> [[a]] -> [[b]]
-mapi2 f = mapi (\ i -> mapi (\j -> f i j)) 
-      
+mapi2 f = mapi (\ i -> mapi (\j -> f i j))
+
+changeAt :: Int -> a -> [a]-> [a]
+changeAt index newValue list =
+    if (index >= length list)
+    then
+        list
+    else
+        case (Prelude.splitAt index list) of
+          (l, (_:xs)) -> l ++ (newValue:xs)
+          _ -> list
 
 changeState :: (Int, (Int, Int))  -> State -> State
-changeState (playerNum, (x, y)) (State st) = 
+changeState (playerNum, (x, y)) (State st counter) = 
   let helper xc yc item = PlayerKlop playerNum in
-  State (st // [(x, (st ! x) // [ ( y,helper x y (st ! x ! y)) ]) ] )
+  State (st // [(x, (st ! x) // [ ( y,helper x y (st ! x ! y))])]) $ changeAt playerNum ((counter !! playerNum) + 1) counter
   
 nei size (x,y) = 
   Prelude.filter (\(x,y) -> (check' x) && (check' y) ) [ (x+1,y), (x-1,y), (x,y+1), (x,y-1) ]
   where check' x = (x>=0) && (x< size)
         
-updateField st (x,y) newVal =         
+updateField st (x,y) newVal =
   st // [(x, (st ! x) // [(y,newVal)] ) ]  
 
 -- evalMoves field playerN [points]   return either new state if all moves are OK
@@ -66,7 +76,7 @@ evalMoves st playerN cells =
         otherwise  -> False
     placableCell st (x,y) = 
       case st ! x ! y of
-        PlayerKlop x | x == playerN -> False
+        PlayerKlop pnum | pnum == playerN -> False
         PlayerFruit _ -> False
         otherwise -> True
     nei' st cell = Prelude.filter (nei'' st) $ nei 10 $ cell
@@ -77,9 +87,9 @@ evalMoves st playerN cells =
         PlayerFruit x | x ==playerN -> True
         PlayerFruit _               -> False
         Empty                       -> False
-    helper (Right x) _ = Right x
-    helper (Left (State st,n)) cell | (placableCell st cell) && (Path.check cell (nei' st) (goodCell st)) = 
-      Left (State $ updateField st cell (PlayerKlop playerN), n+1) 
+    helper (Right val) _ = Right val
+    helper (Left (State st counter, n)) cell | (placableCell st cell) && (Path.check cell (nei' st) (goodCell st)) = 
+      Left (State (updateField st cell (PlayerKlop playerN)) $ changeAt playerN ((counter !! playerN)+1) counter, n+1) 
     helper (Left (_,n)) _ = Right ("cant put klop", n)
       
   
@@ -94,9 +104,9 @@ gameLoop playerNum movesN st =
     let s2i = \x -> read x :: Int
     let z = map ((\x -> ( (s2i $ x!!0, s2i $  x!!1)) ) . (take 2) . (split ",")) (words cmd) 
     case length z of
-      x | x> movesN -> 
+      x | x > movesN -> 
           do 
-            printf "You should write not more %d cells in the line" (movesN :: Int)
+            printf "You should not write more than %d cells in a line" (movesN :: Int)
             gameLoop playerNum 2 st
       x -> doApplyMoves z
     where
@@ -104,20 +114,20 @@ gameLoop playerNum movesN st =
         case evalMoves st playerNum z of
           Left (st,count) | count == movesN ->
             do
-              putStrLn "All moves was applied\n"
+              putStrLn "All moves were applied\n"
               gameLoop (mod (playerNum + 1) 2) 5 st
           Left (st, count) | count < movesN ->
             do 
-              printf "%d  moves was applied. %d left\n" (count :: Int) ((movesN - count) :: Int)
+              printf "%d  moves were applied. %d left\n" (count :: Int) ((movesN - count) :: Int)
               gameLoop playerNum (movesN-count) st
           Right (msg,count) ->
             do
-              printf "Error after successful applying %d moves: %s\n" (count :: Int) (msg :: String)
+              printf "Error after successful applying of %d moves: %s\n" (count :: Int) (msg :: String)
               gameLoop playerNum movesN st
 
 emptyField :: State
 emptyField = 
-  State ( empty // [(1, empty ! 1 // [ (1,PlayerKlop 1) ])] // [(8, empty ! 8 // [ (8,PlayerKlop 0) ])] )
+  State ( empty // [(1, empty ! 1 // [ (1,PlayerKlop 1) ])] // [(8, empty ! 8 // [ (8,PlayerKlop 0) ])] ) [1, 1]
   where empty = V.generate k (const $ row ()) 
         row () = V.generate n (const init) 
         -- I'm not sure that without function all values will be different
